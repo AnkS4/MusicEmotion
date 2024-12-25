@@ -18,3 +18,8 @@ The trained model is containerized using Docker, ensuring easy deployment and sc
 
 #### Prediction
 When provided with an input song or its audio features, the deployed model predicts the associated mood or emotion. Results are accessible via a simple API.
+
+#### Project Requirements
+- Docker
+- Python
+- Python Libraries: specified in the requirements.txt
