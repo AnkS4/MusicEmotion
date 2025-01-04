@@ -1,8 +1,10 @@
 from librosa import load
 from librosa.onset import onset_strength
-from librosa.feature import rhythm, spectral_centroid, spectral_rolloff, zero_crossing_rate
+from librosa.feature import spectral_centroid, spectral_rolloff, zero_crossing_rate, mfcc, chroma_stft, spectral_contrast
+from librosa.feature import tempo
 import soundfile as sf
 import numpy as np
+import pandas as pd
 
 
 class AudioFeatureExtractor:
@@ -27,9 +29,11 @@ class AudioFeatureExtractor:
         Returns:
             tuple: Audio time series data and sample rate.
         """
+
         try:
             info = sf.info(self.file_path)
-            audio, sr = load(self.file_path, sr=info.samplerate, mono=True)  # Use sample rate from sf.info
+            mono = info.channels == 1  # Set mono=True if the audio has only one channel
+            audio, sr = load(self.file_path, sr=info.samplerate, mono=mono)
             return audio, sr
         except Exception as e:
             raise RuntimeError(f"Error loading audio file {self.file_path}: {e}")
@@ -47,6 +51,9 @@ class AudioFeatureExtractor:
             "spectral_centroid": self._extract_spectral_centroid,
             "spectral_rolloff": self._extract_spectral_rolloff,
             "zero_crossing_rate": self._extract_zero_crossing_rate,
+            "mfcc": self._extract_mfcc,
+            "chroma": self._extract_chroma,
+            "spectral_contrast": self._extract_spectral_contrast
         }
 
         extracted_features = {}
@@ -67,7 +74,7 @@ class AudioFeatureExtractor:
             float: Tempo in beats per minute.
         """
         onset_env = onset_strength(y=self.audio_data, sr=self.sample_rate)
-        return rhythm.tempo(onset_envelope=onset_env, sr=self.sample_rate)[0]
+        return tempo(onset_envelope=onset_env, sr=self.sample_rate)[0]
 
     def _extract_energy(self):
         """
@@ -104,13 +111,56 @@ class AudioFeatureExtractor:
             float: Zero crossing rate.
         """
         return np.mean(zero_crossing_rate(self.audio_data))
+        
+    def _extract_mfcc(self):
+        """
+        Extract MFCC features.
+        
+        Returns:
+        np.ndarray: Mean MFCC values.
+        """
+        return np.mean(mfcc(y=self.audio_data, sr=self.sample_rate, n_mfcc=13), axis=1)
+        
+    def _extract_chroma(self):
+        """
+        Extract chroma features.
+        
+        Returns:
+        np.ndarray: Mean chroma features.
+        """
+        return np.mean(chroma_stft(y=self.audio_data, sr=self.sample_rate), axis=1)
+        
+    def _extract_spectral_contrast(self):
+        """
+        Extract spectral contrast.
+        
+        Returns:
+        np.ndarray: Mean spectral contrast.
+        """
+        return np.mean(spectral_contrast(y=self.audio_data, sr=self.sample_rate), axis=1)
+
+def flatten_features(features):
+    flat_features = {}
+    for key, value in features.items():
+        if isinstance(value, np.ndarray):  # Handle arrays (e.g., mfcc, chroma, spectral_contrast, etc.)
+            if value.ndim == 1:  # If it's a 1D array, keep it as-is
+                flat_features[key] = np.mean(value)
+            elif value.ndim == 2:  # If it's a 2D array (time-series), summarize it
+                for i, row in enumerate(value):
+                    flat_features[f"{key}_mean_{i}"] = np.mean(row)
+                    flat_features[f"{key}_std_{i}"] = np.std(row)
+            else:
+                raise ValueError(f"Unexpected shape for feature {key}: {value.shape}")
+        else:  # Handle scalar values
+            flat_features[key] = value
+    return flat_features
 
 
-if __name__ == "__main__":
-    sample_file = "../data/33796__yewbic__ambience03.wav"
+sample_file = "../data/33796__yewbic__ambience03.wav"
 
-    feature_extractor = AudioFeatureExtractor(file_path=sample_file)
-    features = feature_extractor.extract_features()
+feature_extractor = AudioFeatureExtractor(file_path=sample_file)
+features = feature_extractor.extract_features()
+flat_features = flatten_features(features)
+features_df = pd.DataFrame([flat_features])
 
-    print("Extracted Features:", features)
-
+print(features_df)
