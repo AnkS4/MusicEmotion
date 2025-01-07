@@ -5,6 +5,7 @@ from librosa.feature import tempo
 import soundfile as sf
 import numpy as np
 import pandas as pd
+import os
 
 
 class AudioFeatureExtractor:
@@ -12,14 +13,19 @@ class AudioFeatureExtractor:
     A class for extracting audio features from a given audio file.
     """
 
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str = None):
         """
         Initialize the AudioFeatureExtractor with the audio file path.
 
         Args:
             file_path (str): Path to the audio file.
         """
-        self.file_path = file_path
+        if file_path is None:
+            # Dynamically construct the absolute path to the default file
+            current_dir = os.path.dirname(os.path.abspath(__file__))  # Get the directory of this script
+            self.file_path = os.path.join(current_dir, "../data/33796__yewbic__ambience03.wav")
+        else:
+            self.file_path = file_path
         self.audio_data, self.sample_rate = self._load_audio()
 
     def _load_audio(self):
@@ -29,6 +35,8 @@ class AudioFeatureExtractor:
         Returns:
             tuple: Audio time series data and sample rate.
         """
+        if not os.path.exists(self.file_path):
+            raise FileNotFoundError(f"Audio file not found: {self.file_path}")
 
         try:
             info = sf.info(self.file_path)
@@ -139,7 +147,7 @@ class AudioFeatureExtractor:
         """
         return np.mean(spectral_contrast(y=self.audio_data, sr=self.sample_rate), axis=1)
 
-def flatten_features(features):
+def flatten_features(features: dict) -> dict:
     flat_features = {}
     for key, value in features.items():
         if isinstance(value, np.ndarray):  # Handle arrays (e.g., mfcc, chroma, spectral_contrast, etc.)
@@ -156,11 +164,10 @@ def flatten_features(features):
     return flat_features
 
 
-sample_file = "../data/33796__yewbic__ambience03.wav"
+if __name__ == "__main__":
+    feature_extractor = AudioFeatureExtractor()
+    features = feature_extractor.extract_features()
+    flat_features = flatten_features(features)
+    features_df = pd.DataFrame([flat_features])
 
-feature_extractor = AudioFeatureExtractor(file_path=sample_file)
-features = feature_extractor.extract_features()
-flat_features = flatten_features(features)
-features_df = pd.DataFrame([flat_features])
-
-print(features_df)
+    print(features_df)
