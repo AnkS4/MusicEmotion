@@ -5,7 +5,7 @@ from librosa.feature import tempo
 import soundfile as sf
 import numpy as np
 import pandas as pd
-import os
+from pathlib import Path
 
 
 class AudioFeatureExtractor:
@@ -20,13 +20,8 @@ class AudioFeatureExtractor:
         Args:
             file_path (str): Path to the audio file.
         """
-        current_parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Get the directory of this script
-
-        if file_path is None:
-            # Dynamically construct the absolute path to the default file
-            self.file_path = os.path.join(current_parent_dir, "data/33796__yewbic__ambience03.wav")
-        else:
-            self.file_path = os.path.join(current_parent_dir, file_path)
+        project_root_dir = Path(__file__).resolve().parent.parent  # Two levels up from this script
+        self.file_path = str(Path(project_root_dir) / (file_path or "data/33796__yewbic__ambience03.wav"))
 
         self.audio_data, self.sample_rate = self._load_audio()
 
@@ -37,7 +32,7 @@ class AudioFeatureExtractor:
         Returns:
             tuple: Audio time series data and sample rate.
         """
-        if not os.path.exists(self.file_path):
+        if not Path(self.file_path).exists():
             raise FileNotFoundError(f"Audio file not found: {self.file_path}")
 
         try:
