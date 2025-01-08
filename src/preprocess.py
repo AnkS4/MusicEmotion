@@ -20,12 +20,14 @@ class AudioFeatureExtractor:
         Args:
             file_path (str): Path to the audio file.
         """
+        current_parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Get the directory of this script
+
         if file_path is None:
             # Dynamically construct the absolute path to the default file
-            current_dir = os.path.dirname(os.path.abspath(__file__))  # Get the directory of this script
-            self.file_path = os.path.join(current_dir, "../data/33796__yewbic__ambience03.wav")
+            self.file_path = os.path.join(current_parent_dir, "data/33796__yewbic__ambience03.wav")
         else:
-            self.file_path = file_path
+            self.file_path = os.path.join(current_parent_dir, file_path)
+
         self.audio_data, self.sample_rate = self._load_audio()
 
     def _load_audio(self):
