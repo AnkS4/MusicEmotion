@@ -7,7 +7,7 @@ annotations = pd.read_csv("data/static_annotations_averaged.csv", dtype={'song_i
 
 for _, row in annotations.iterrows():
     song_id = row["song_id"]
-    file_path = f"/data/audios/{song_id}.mp3"  # Path to the audio file
+    file_path = f"data/audios/{song_id}.mp3"  # Path to the audio file
 
     print(f"Extracting features for {song_id}.mp3 ...")
     # Extract features for the song
